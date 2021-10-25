@@ -42,13 +42,6 @@ class Movie(db.Model): # 表名将会是 movie
     year = db.Column(db.String(4)) # 电影年份
 
 
-
-@app.route('/')
-def index():
-    user = User.query.first()
-    movies = Movie.query.all()
-    return render_template('index.html',user=user,movies=movies)
-
 @app.cli.command()
 def forge():
     '''生成虚拟数据'''
@@ -74,3 +67,32 @@ def forge():
         db.session.add(movie)
     db.session.commit()
     click.echo('Done') # 输出提示信息
+
+'''
+使用 app.errorhandler() 装饰器注册一个错误处理函数，它的作用和视图
+函数类似，当 404 错误发生时，这个函数会被触发，返回值会作为响应主体返回给
+客户端
+'''
+@app.errorhandler(404)# 传入要处理的错误代码
+def page_not_found(e):#接受异常对象作为参数
+    user = User.query.first()
+    #return render_template('404.html', user=user),404 #返回模板和状态码
+    # #上下文函数返回了user,故可以删除user变量的定义,如下所示
+    return render_template('404.html'),404
+
+'''
+对于多个模板内都需要使用的变量，可以使用 app.context_processor 装饰器注册一个模板上下文处理函数
+这个函数返回的变量（以字典键值对的形式）将会统一注入到每一个模板的上下文环境中，因此可以直接在模板中使用。
+'''
+@app.context_processor
+def inject_user():#函数名字可以任意修改
+    user = User.query.first()
+    return dict(user=user) #需要返回字典，等同于 return {'user':user}
+
+@app.route('/')
+def index():
+    user = User.query.first()
+    movies = Movie.query.all()
+    #return render_template('index.html',user=user,movies=movies)
+    # 上下文函数返回了user,故可以删除user变量的定义,如下所示
+    return render_template('index.html',movies = movies)
