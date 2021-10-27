@@ -1,4 +1,4 @@
-from flask import Flask,render_template
+from flask import Flask,render_template,request,flash,redirect,url_for
 from flask import escape
 from flask_sqlalchemy import SQLAlchemy
 import os
@@ -7,6 +7,7 @@ import click
 
 
 app = Flask(__name__)#指定app的名字是什么
+app.config['SECRET_KEY'] = 'dev'#设置签名所需的密钥
 
 @app.cli.command()#注册为命令
 @click.option('--drop',is_flag=True,help='Create after drop')#设置选项
@@ -89,10 +90,68 @@ def inject_user():#函数名字可以任意修改
     user = User.query.first()
     return dict(user=user) #需要返回字典，等同于 return {'user':user}
 
-@app.route('/')
-def index():
+@app.route('/',methods=['GET','POST'])
+def index():#视图函数
+    if request.method == 'POST':# 判断是否是post请求
+        #获取表单数据
+        title = request.form.get('title') #传入表单对应输入字段的name值
+        year = request.form.get('year') # 传入表单对应输入字段的year值
+        #验证数据
+        if not title or not year or len(year)>4 or len(title)>60:
+            flash('Invalid input.') #显示错误提示
+            return redirect(url_for('index'))# 重定向回主页
+        #保存表单数据到数据库
+        movie = Movie(title=title,year=year)#创建记录
+        db.session.add(movie)# 添加到数据库会话
+        db.session.commit() #提交数据库会话
+        flash('Item created.') #显示成功创建的提示
+        return redirect(url_for('index'))# 重定向回主页
     user = User.query.first()
     movies = Movie.query.all()
+    return render_template('index.html',user=user,movies=movies)
+
     #return render_template('index.html',user=user,movies=movies)
     # 上下文函数返回了user,故可以删除user变量的定义,如下所示
-    return render_template('index.html',movies = movies)
+    #return render_template('index.html',movies = movies)
+
+#编辑
+@app.route('/movie/edit/<int:movie_id>',methods=['GET','POST'])
+def edit(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    if request.method=='POST':
+        title = request.form.get('title')
+        year = request.form.get('year')
+        if not title or not year or len(title)>60 or len(year)>4:
+            flash('Invalid input.')
+            return redirect(url_for('edit',movie_id=movie_id))# 重定向回对应的编辑页面
+        movie.title=title # 更新标题
+        movie.year=year #更新年份
+        db.session.commit()#提交数据库会话
+        flash('Item updated')
+        return redirect(url_for('index'))#重定向回主页面
+    return render_template('edit.html',movie=movie)# 传入被编辑 的电影记录
+
+#删除
+@app.route('/movie/edit/delete/<int:movie_id>',methods=['POST'])
+def delete(movie_id):
+    movie = Movie.query.get_or_404(movie_id)# 获取电影记录
+    db.session.delete(movie) # 删除对应的记录
+    db.session.commit() # 提交数据库会话
+    flash('Item deleted.')
+    return redirect(url_for('index')) # 重定向回主页
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
