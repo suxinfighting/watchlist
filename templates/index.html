@@ -2,22 +2,30 @@
 
 {%block content%}
 <p>{{movies|length}} Titles</p>
+<!-- 在模板中可以直接使用 current_user 变量 -->
+<!--在模板渲染时，会先判断当前用户的登录状态 （ current_user.is_authenticated ）。-->
+<!--如果用户没有登录 （ current_user.is_authenticated 返回 False ），-->
+<!--就不会渲染代码块中if和endif 之间的代码 -->
+{% if current_user.is_authenticated %}
 <form method="post">
-    <!-- autocomplete 属性设为 off 来关闭自动完成（按下输 入框不显示历史输入记录）-->
+    <!-- autocomplete 属性设为 off 来关闭自动完成（按下输入框不显示历史输入记录）-->
     <!--required 标志属性，如果用户没有 输入内容就按下了提交按钮，浏览器会显示错误提示-->
     Name <input type="text" name="title" autocomplete="off" required>
     Year <input type="text" name="year" autocomplete="off" required>
     <input class="btn" type="submit" name="submit" value="Add">
 </form>
+{% endif %}
 <ul class="movie-list">
     {% for movie in movies%}
     <li>{{movie.title}} - {{movie.year}}
         <span class="float-right">
             <a class="imdb" href="https://movie.douban.com/subject_search?search_text={{ movie.title }}" target="_blank" title="Find this movie on IMDb">豆瓣</a>
+            {% if current_user.is_authenticated %}
             <a class="btn" href="{{url_for('edit',movie_id=movie.id)}}">Edit</a>
             <form class="inline-form" method="post" action="{{url_for('delete',movie_id=movie.id)}}">
                 <input class="btn" type="submit" name="delete" value="Delete" onclick="return	confirm('Are	you	sure?')">
             </form>
+            {% endif %}
         </span>
     </li>
     {% endfor%}
